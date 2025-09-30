@@ -1,0 +1,511 @@
+backend/models/LeaveApplication.js
+const { getPool, sql } = require('../config/database');
+
+class LeaveApplication {
+    // Apply for leave
+    static async create(leaveData) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('user_id', sql.Int, leaveData.user_id)
+            .input('leave_type_id', sql.Int, leaveData.leave_type_id)
+            .input('leave_category', sql.NVarChar, leaveData.leave_category)
+            .input('start_date', sql.Date, leaveData.start_date)
+            .input('end_date', sql.Date, leaveData.end_date || null)
+            .input('half_day_period', sql.NVarChar, leaveData.half_day_period || null)
+            .input('short_leave_start_time', sql.Time, leaveData.short_leave_start_time || null)
+            .input('short_leave_end_time', sql.Time, leaveData.short_leave_end_time || null)
+            .input('total_days', sql.Decimal(5, 1), leaveData.total_days)
+            .input('reason', sql.NVarChar, leaveData.reason)
+            .query(`
+                INSERT INTO leave_applications 
+                (user_id, leave_type_id, leave_category, start_date, end_date, 
+                 half_day_period, short_leave_start_time, short_leave_end_time, 
+                 total_days, reason, status)
+                OUTPUT INSERTED.*
+                VALUES (@user_id, @leave_type_id, @leave_category, @start_date, @end_date,
+                        @half_day_period, @short_leave_start_time, @short_leave_end_time,
+                        @total_days, @reason, 'Pending')
+            `);
+        
+        return result.recordset[0];
+    }
+
+    // Get all leave applications (for HR)
+    static async getAll() {
+        const pool = await getPool();
+        
+        const result = await pool.request().query(`
+            SELECT 
+                la.*,
+                u.full_name as employee_name,
+                u.email as employee_email,
+                lt.leave_type_name,
+                approver.full_name as approver_name
+            FROM leave_applications la
+            JOIN users u ON la.user_id = u.user_id
+            JOIN leave_types lt ON la.leave_type_id = lt.leave_type_id
+            LEFT JOIN users approver ON la.approved_by = approver.user_id
+            ORDER BY la.created_at DESC
+        `);
+        
+        return result.recordset;
+    }
+
+    // Get leave applications by user
+    static async getByUserId(userId) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('user_id', sql.Int, userId)
+            .query(`
+                SELECT 
+                    la.*,
+                    lt.leave_type_name,
+                    approver.full_name as approver_name
+                FROM leave_applications la
+                JOIN leave_types lt ON la.leave_type_id = lt.leave_type_id
+                LEFT JOIN users approver ON la.approved_by = approver.user_id
+                WHERE la.user_id = @user_id
+                ORDER BY la.created_at DESC
+            `);
+        
+        return result.recordset;
+    }
+
+    // Get pending leaves for manager (their team members)
+    static async getPendingByManager(managerId) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('manager_id', sql.Int, managerId)
+            .query(`
+                SELECT 
+                    la.*,
+                    u.full_name as employee_name,
+                    u.email as employee_email,
+                    lt.leave_type_name
+                FROM leave_applications la
+                JOIN users u ON la.user_id = u.user_id
+                JOIN leave_types lt ON la.leave_type_id = lt.leave_type_id
+                WHERE u.manager_id = @manager_id AND la.status = 'Pending'
+                ORDER BY la.created_at DESC
+            `);
+        
+        return result.recordset;
+    }
+
+    // Get all leaves for manager's team
+    static async getTeamLeaves(managerId) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('manager_id', sql.Int, managerId)
+            .query(`
+                SELECT 
+                    la.*,
+                    u.full_name as employee_name,
+                    u.email as employee_email,
+                    lt.leave_type_name,
+                    approver.full_name as approver_name
+                FROM leave_applications la
+                JOIN users u ON la.user_id = u.user_id
+                JOIN leave_types lt ON la.leave_type_id = lt.leave_type_id
+                LEFT JOIN users approver ON la.approved_by = approver.user_id
+                WHERE u.manager_id = @manager_id
+                ORDER BY la.created_at DESC
+            `);
+        
+        return result.recordset;
+    }
+
+    // Approve leave
+    static async approve(applicationId, approverId) {
+        const pool = await getPool();
+        
+        await pool.request()
+            .input('application_id', sql.Int, applicationId)
+            .input('approved_by', sql.Int, approverId)
+            .query(`
+                UPDATE leave_applications 
+                SET status = 'Approved', 
+                    approved_by = @approved_by, 
+                    approved_at = GETDATE()
+                WHERE application_id = @application_id
+            `);
+        
+        return { message: 'Leave approved successfully' };
+    }
+
+    // Reject leave
+    static async reject(applicationId, approverId, rejectionReason) {
+        const pool = await getPool();
+        
+        await pool.request()
+            .input('application_id', sql.Int, applicationId)
+            .input('approved_by', sql.Int, approverId)
+            .input('rejection_reason', sql.NVarChar, rejectionReason)
+            .query(`
+                UPDATE leave_applications 
+                SET status = 'Rejected', 
+                    approved_by = @approved_by, 
+                    approved_at = GETDATE(),
+                    rejection_reason = @rejection_reason
+                WHERE application_id = @application_id
+            `);
+        
+        return { message: 'Leave rejected successfully' };
+    }
+
+    // Get leave by ID
+    static async getById(applicationId) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('application_id', sql.Int, applicationId)
+            .query(`
+                SELECT 
+                    la.*,
+                    u.full_name as employee_name,
+                    u.email as employee_email,
+                    lt.leave_type_name,
+                    approver.full_name as approver_name
+                FROM leave_applications la
+                JOIN users u ON la.user_id = u.user_id
+                JOIN leave_types lt ON la.leave_type_id = lt.leave_type_id
+                LEFT JOIN users approver ON la.approved_by = approver.user_id
+                WHERE la.application_id = @application_id
+            `);
+        
+        return result.recordset[0];
+    }
+}
+
+module.exports = LeaveApplication;
+
+
+backend/models/LeaveBalance.js
+const { getPool, sql } = require('../config/database');
+
+class LeaveBalance {
+    // Get user's leave balances
+    static async getByUserId(userId) {
+        const pool = await getPool();
+        
+        const result = await pool.request()
+            .input('user_id', sql.Int, userId)
+            .input('year', sql.Int, new Date().getFullYear())
+            .query(`
+                SELECT 
+                    lb.*,
+                    lt.leave_type_name,
+                    lt.description
+                FROM leave_balances lb
+                JOIN leave_types lt ON lb.leave_type_id = lt.leave_type_id
+                WHERE lb.user_id = @user_id AND lb.year = @year
+            `);
+        
+        return result.recordset;
+    }
+
+    // Initialize leave balances for new user
+    static async initialize(userId) {
+        const pool = await getPool();
+        const year = new Date().getFullYear();
+        
+        await pool.request()
+            .input('user_id', sql.Int, userId)
+            .input('year', sql.Int, year)
+            .query(`
+                INSERT INTO leave_balances (user_id, leave_type_id, total_days, used_days, available_days, year)
+                SELECT @user_id, leave_type_id, 20.0, 0, 20.0, @year
+                FROM leave_types
+            `);
+    }
+
+    // Update leave balance after approval
+    static async updateBalance(userId, leaveTypeId, days) {
+        const pool = await getPool();
+        const year = new Date().getFullYear();
+        
+        await pool.request()
+            .input('user_id', sql.Int, userId)
+            .input('leave_type_id', sql.Int, leaveTypeId)
+            .input('days', sql.Decimal(5, 1), days)
+            .input('year', sql.Int, year)
+            .query(`
+                UPDATE leave_balances 
+                SET used_days = used_days + @days,
+                    available_days = total_days - (used_days + @days)
+                WHERE user_id = @user_id 
+                  AND leave_type_id = @leave_type_id 
+                  AND year = @year
+            `);
+    }
+}
+
+module.exports = LeaveBalance;
+
+backend/routes/employee.js
+
+const express = require('express');
+const router = express.Router();
+const { authMiddleware, checkLevel } = require('../middleware/auth');
+const LeaveApplication = require('../models/LeaveApplication');
+const LeaveBalance = require('../models/LeaveBalance');
+
+// All routes require authentication
+router.use(authMiddleware);
+
+// Apply for leave (Level 2 & 3 can apply)
+router.post('/apply-leave', checkLevel(2, 3), async (req, res) => {
+    try {
+        const {
+            leave_type_id,
+            leave_category,
+            start_date,
+            end_date,
+            half_day_period,
+            short_leave_start_time,
+            short_leave_end_time,
+            reason
+        } = req.body;
+
+        // Calculate total days based on category
+        let total_days;
+        switch (leave_category) {
+            case 'Full Day':
+                const start = new Date(start_date);
+                const end = new Date(end_date);
+                const diffTime = Math.abs(end - start);
+                total_days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                break;
+            case 'Half Day':
+                total_days = 0.5;
+                break;
+            case 'Short Leave':
+                total_days = 0.25; // or calculate based on hours
+                break;
+        }
+
+        const leaveData = {
+            user_id: req.user.user_id,
+            leave_type_id,
+            leave_category,
+            start_date,
+            end_date,
+            half_day_period,
+            short_leave_start_time,
+            short_leave_end_time,
+            total_days,
+            reason
+        };
+
+        const leave = await LeaveApplication.create(leaveData);
+
+        res.status(201).json({
+            message: 'Leave application submitted successfully',
+            leave
+        });
+    } catch (error) {
+        console.error('Apply leave error:', error);
+        res.status(500).json({ message: 'Failed to apply for leave', error: error.message });
+    }
+});
+
+// Get my leave applications
+router.get('/my-leaves', checkLevel(2, 3), async (req, res) => {
+    try {
+        const leaves = await LeaveApplication.getByUserId(req.user.user_id);
+        res.json({ leaves });
+    } catch (error) {
+        console.error('Get leaves error:', error);
+        res.status(500).json({ message: 'Failed to get leaves', error: error.message });
+    }
+});
+
+// Get my leave balances
+router.get('/my-balances', checkLevel(2, 3), async (req, res) => {
+    try {
+        const balances = await LeaveBalance.getByUserId(req.user.user_id);
+        res.json({ balances });
+    } catch (error) {
+        console.error('Get balances error:', error);
+        res.status(500).json({ message: 'Failed to get leave balances', error: error.message });
+    }
+});
+
+module.exports = router;
+
+backend/routes/manager.js
+
+const express = require('express');
+const router = express.Router();
+const { authMiddleware, checkLevel } = require('../middleware/auth');
+const LeaveApplication = require('../models/LeaveApplication');
+const LeaveBalance = require('../models/LeaveBalance');
+
+// All routes require Level 2 (Manager) authentication
+router.use(authMiddleware);
+router.use(checkLevel(2));
+
+// Get pending leaves for approval
+router.get('/pending-leaves', async (req, res) => {
+    try {
+        const leaves = await LeaveApplication.getPendingByManager(req.user.user_id);
+        res.json({ leaves });
+    } catch (error) {
+        console.error('Get pending leaves error:', error);
+        res.status(500).json({ message: 'Failed to get pending leaves', error: error.message });
+    }
+});
+
+// Get all team leaves
+router.get('/team-leaves', async (req, res) => {
+    try {
+        const leaves = await LeaveApplication.getTeamLeaves(req.user.user_id);
+        res.json({ leaves });
+    } catch (error) {
+        console.error('Get team leaves error:', error);
+        res.status(500).json({ message: 'Failed to get team leaves', error: error.message });
+    }
+});
+
+// Approve leave
+router.post('/approve/:applicationId', async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        
+        // Get leave details first
+        const leave = await LeaveApplication.getById(applicationId);
+        
+        if (!leave) {
+            return res.status(404).json({ message: 'Leave application not found' });
+        }
+
+        // Approve the leave
+        await LeaveApplication.approve(applicationId, req.user.user_id);
+        
+        // Update leave balance
+        await LeaveBalance.updateBalance(leave.user_id, leave.leave_type_id, leave.total_days);
+
+        res.json({ message: 'Leave approved successfully' });
+    } catch (error) {
+        console.error('Approve leave error:', error);
+        res.status(500).json({ message: 'Failed to approve leave', error: error.message });
+    }
+});
+
+// Reject leave
+router.post('/reject/:applicationId', async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        const { rejection_reason } = req.body;
+
+        if (!rejection_reason) {
+            return res.status(400).json({ message: 'Rejection reason is required' });
+        }
+
+        await LeaveApplication.reject(applicationId, req.user.user_id, rejection_reason);
+
+        res.json({ message: 'Leave rejected successfully' });
+    } catch (error) {
+        console.error('Reject leave error:', error);
+        res.status(500).json({ message: 'Failed to reject leave', error: error.message });
+    }
+});
+
+module.exports = router;
+
+
+backend/routes/hr.js
+
+const express = require('express');
+const router = express.Router();
+const { authMiddleware, checkLevel } = require('../middleware/auth');
+const User = require('../models/User');
+const LeaveApplication = require('../models/LeaveApplication');
+const LeaveBalance = require('../models/LeaveBalance');
+
+// All routes require Level 1 (HR) authentication
+router.use(authMiddleware);
+router.use(checkLevel(1));
+
+// Get all users
+router.get('/users', async (req, res) => {
+    try {
+        const users = await User.getAll();
+        res.json({ users });
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ message: 'Failed to get users', error: error.message });
+    }
+});
+
+// Create new user
+router.post('/users', async (req, res) => {
+    try {
+        const { email, password, full_name, user_level, manager_id } = req.body;
+
+        // Validate
+        if (!email || !password || !full_name || !user_level) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        // Check if user exists
+        const existingUser = await User.findByEmail(email);
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Create user
+        const user = await User.create({ email, password, full_name, user_level, manager_id });
+        
+        // Initialize leave balances
+        await LeaveBalance.initialize(user.user_id);
+
+        res.status(201).json({
+            message: 'User created successfully',
+            user: {
+                user_id: user.user_id,
+                email: user.email,
+                full_name: user.full_name,
+                user_level: user.user_level
+            }
+        });
+    } catch (error) {
+        console.error('Create user error:', error);
+        res.status(500).json({ message: 'Failed to create user', error: error.message });
+    }
+});
+
+// Assign manager to employee
+router.put('/assign-manager', async (req, res) => {
+    try {
+        const { user_id, manager_id } = req.body;
+
+        if (!user_id || !manager_id) {
+            return res.status(400).json({ message: 'User ID and Manager ID are required' });
+        }
+
+        await User.updateManager(user_id, manager_id);
+
+        res.json({ message: 'Manager assigned successfully' });
+    } catch (error) {
+        console.error('Assign manager error:', error);
+        res.status(500).json({ message: 'Failed to assign manager', error: error.message });
+    }
+});
+
+// Get all leave applications
+router.get('/all-leaves', async (req, res) => {
+    try {
+        const leaves = await LeaveApplication.getAll();
+        res.json({ leaves });
+    } catch (error) {
+        console.error('Get all leaves error:', error);
+        res.status(500).json({ message: 'Failed to get leaves', error: error.message });
+    }
+});
+
+module.exports = router;

@@ -1,0 +1,86 @@
+-- Users table
+CREATE TABLE users (
+    user_id INT PRIMARY KEY IDENTITY(1,1),
+    email NVARCHAR(255) UNIQUE NOT NULL,
+    password_hash NVARCHAR(255) NOT NULL,
+    full_name NVARCHAR(255) NOT NULL,
+    role NVARCHAR(20) CHECK (role IN ('HR', 'Manager', 'Employee')) NOT NULL,
+    manager_id INT,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (manager_id) REFERENCES users(user_id)
+);
+
+-- Leave types table
+CREATE TABLE leave_types (
+    leave_type_id INT PRIMARY KEY IDENTITY(1,1),
+    leave_type_name NVARCHAR(100) NOT NULL,
+    description NVARCHAR(MAX)
+);
+
+-- Leave balances table
+CREATE TABLE leave_balances (
+    balance_id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    leave_type_id INT NOT NULL,
+    total_days DECIMAL(5,1) DEFAULT 20.0,
+    used_days DECIMAL(5,1) DEFAULT 0,
+    available_days DECIMAL(5,1) DEFAULT 20.0,
+    year INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(leave_type_id)
+);
+
+-- Leave applications table
+CREATE TABLE leave_applications (
+    application_id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    leave_type_id INT NOT NULL,
+    leave_category NVARCHAR(20) CHECK (leave_category IN ('Full Day', 'Half Day', 'Short Leave')) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    half_day_period NVARCHAR(20) CHECK (half_day_period IN ('Morning', 'Afternoon')),
+    short_leave_start_time TIME,
+    short_leave_end_time TIME,
+    total_days DECIMAL(5,1),
+    reason NVARCHAR(MAX),
+    status NVARCHAR(20) CHECK (status IN ('Pending', 'Approved', 'Rejected')) DEFAULT 'Pending',
+    approved_by INT,
+    approved_at DATETIME,
+    rejection_reason NVARCHAR(MAX),
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(leave_type_id),
+    FOREIGN KEY (approved_by) REFERENCES users(user_id)
+);
+
+-- Insert default leave types
+INSERT INTO leave_types (leave_type_name, description) VALUES 
+('Annual Leave', 'Regular annual leave'),
+('Sick Leave', 'Medical leave'),
+('Casual Leave', 'Short term casual leave');
+
+-- Insert sample users (password is 'password123' for all)
+INSERT INTO users (email, password_hash, full_name, role) VALUES 
+('hr@company.com', '$2a$10$YourHashedPasswordHere', 'HR Admin', 'HR'),
+('manager@company.com', '$2a$10$YourHashedPasswordHere', 'John Manager', 'Manager'),
+('employee@company.com', '$2a$10$YourHashedPasswordHere', 'Jane Employee', 'Employee');
+
+-- Add user_level column
+ALTER TABLE users ADD user_level INT;
+
+-- Update existing users with levels
+UPDATE users SET user_level = 1 WHERE role = 'HR';
+UPDATE users SET user_level = 2 WHERE role = 'Manager';
+UPDATE users SET user_level = 3 WHERE role = 'Employee';
+
+-- Make user_level NOT NULL
+ALTER TABLE users ALTER COLUMN user_level INT NOT NULL;
+
+-- Add check constraint
+ALTER TABLE users ADD CONSTRAINT CK_user_level CHECK (user_level IN (1, 2, 3));
+
+-- Optional: You can keep role column for display or drop it
+-- To drop role column (optional):
+-- ALTER TABLE users DROP CONSTRAINT CK__users__role__[constraint_name];
+-- ALTER TABLE users DROP COLUMN role;
