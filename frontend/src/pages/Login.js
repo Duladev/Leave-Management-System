@@ -8,7 +8,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    
+
     const { login } = useAuth();
     const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ const Login = () => {
         setLoading(true);
 
         const result = await login(email, password);
-        
+
         setLoading(false);
 
         if (result.success) {
@@ -29,83 +29,63 @@ const Login = () => {
     };
 
     return (
-        <div className="login-container">
-            <div className="login-background"></div>
-            
-            <div className="diamond-container">
-                <div className="diamond-shape">
-                    <div className="diamond-content">
-                        <div className="logo-section">
-                            <h1 className="system-title">Leave Management</h1>
-                            <p className="system-subtitle">Professional System</p>
+        <main id="login-section" className="login-page">
+            <div className="login-card">
+                <svg className="login-card-bg" viewBox="0 0 678 600" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <div class="login-card-border-outer"></div>
+                        <div class="login-card-border"></div>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: 'rgb(102, 126, 234)', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: 'rgb(118, 75, 162)', stopOpacity: 1 }} />
+                        </linearGradient>
+                    </defs>
+                    <rect width="678" height="600" fill="url(#grad1)" rx="20" />
+                </svg>
+
+                <form className="login-form" onSubmit={handleSubmit}>
+                    <h1 className="form-title">Diamond Leave System</h1>
+
+                    {error && (
+                        <div className="error-alert">
+                            {error}
                         </div>
+                    )}
 
-                        {error && (
-                            <div className="error-message">
-                                {error}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="login-form">
-                            <div className="form-group">
-                                <label>Email Address</label>
-                                <input
-                                    type="email"
-                                    className="form-input"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    placeholder="Enter your email"
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input
-                                    type="password"
-                                    className="form-input"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    placeholder="Enter your password"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="login-button"
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <span className="spinner"></span>
-                                ) : (
-                                    'Sign In'
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="demo-credentials">
-                            <p className="demo-title">Demo Accounts</p>
-                            <div className="demo-list">
-                                <div className="demo-item">
-                                    <span className="badge-hr">HR</span>
-                                    <span>hr@company.com</span>
-                                </div>
-                                <div className="demo-item">
-                                    <span className="badge-manager">Manager</span>
-                                    <span>manager@company.com</span>
-                                </div>
-                                <div className="demo-item">
-                                    <span className="badge-employee">Employee</span>
-                                    <span>employee@company.com</span>
-                                </div>
-                                <p className="demo-password">Password: password123</p>
-                            </div>
-                        </div>
+                    <div className="form-group">
+                        <label htmlFor="email" className="form-label">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            className="form-input"
+                            placeholder="email@domain.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
                     </div>
-                </div>
+
+                    <div className="form-group">
+                        <label htmlFor="password" className="form-label">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            className="form-input"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <button type="submit" className="login-button" disabled={loading}>
+                        {loading ? 'Logging in...' : 'Login'}
+                    </button>
+
+
+                </form>
             </div>
-        </div>
+        </main>
     );
 };
 

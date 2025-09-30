@@ -2,9 +2,9 @@ const sql = require('mssql');
 
 const config = {
     user: 'sa',
-    password: '123',
-    server: 'DCL-ICT-007',
-    database: 'Leave_Management_System',
+    password: 'Dula2001',
+    server: 'DULA-DEV',
+    database: 'leave_management_system',
     options: {
         encrypt: false,
         trustServerCertificate: true,

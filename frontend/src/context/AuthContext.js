@@ -17,10 +17,9 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
-        
+
         if (storedToken && storedUser) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
@@ -32,18 +31,18 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authAPI.login(email, password);
             const { token, user } = response.data;
-            
+
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
-            
+
             setToken(token);
             setUser(user);
-            
+
             return { success: true };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error.response?.data?.message || 'Login failed' 
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -60,10 +59,7 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         logout,
-        isAuthenticated: !!token,
-        isHR: user?.user_level === 1,
-        isManager: user?.user_level === 2,
-        isEmployee: user?.user_level === 3
+        isAuthenticated: !!token
     };
 
     if (loading) {
@@ -76,5 +72,3 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
-
-
