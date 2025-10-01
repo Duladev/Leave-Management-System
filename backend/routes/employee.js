@@ -34,8 +34,7 @@ router.post('/apply-leave', checkLevel(2, 3), async (req, res) => {
                 total_days = 0.5;
                 break;
             case 'Short Leave':
-                total_days = 0.25; // or calculate based on hours
-                break;
+                total_days = 0.25; //                break;
         }
 
         const leaveData = {

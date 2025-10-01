@@ -6,3 +6,6 @@ Leave request and manage system UI & UX Design https://www.figma.com/design/poAN
 Database Schema https://drawsql.app/teams/diamond-5/diagrams/leave-system
 
 MERN stack Vs MESN stack https://rameezibrahim.medium.com/building-a-full-stack-application-with-mern-and-sql-65d378309886
+
+Frontend - npm install
+Backend - npm start
