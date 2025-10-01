@@ -66,8 +66,8 @@ body {
 /* Diamond Card Container */
 .login-card {
     position: relative;
-    width: 700px;
-    height: 800px;
+    width: 600px;
+    height: 600px;
     display: flex;
     justify-content: center;
     align-items: center;
