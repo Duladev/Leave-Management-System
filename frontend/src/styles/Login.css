@@ -22,7 +22,7 @@ body {
     position: relative;
     background:
         /* Main background image */
-        url('E:\Leave-Management-System\frontend\src\assets\1.jpg') center/cover no-repeat,
+        url('F:\Leave-Management-System-1\frontend\src\assets\1.jpg') center/cover no-repeat,
         /* Gradient overlay */
         radial-gradient(ellipse at center, rgba(26, 26, 46, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
     overflow: hidden;
