@@ -9,3 +9,5 @@ MERN stack Vs MESN stack https://rameezibrahim.medium.com/building-a-full-stack-
 
 Frontend - npm install
 Backend - npm start
+
+[auth without password hashing method](backend/routes/auth.js)

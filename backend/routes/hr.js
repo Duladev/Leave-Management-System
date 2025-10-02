@@ -1,5 +1,3 @@
-backend/routes/hr.js
-
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, checkLevel } = require('../middleware/auth');

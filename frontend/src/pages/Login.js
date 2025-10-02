@@ -30,6 +30,7 @@ const Login = () => {
 
     return (
         <main id="login-section" className="login-page">
+            
             <div className="login-card">
                 <svg className="login-card-bg" viewBox="0 0 678 600" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -42,7 +43,6 @@ const Login = () => {
                     </defs>
                     <rect width="678" height="600" fill="url(#grad1)" rx="20" />
                 </svg>
-
                 <form className="login-form" onSubmit={handleSubmit}>
                     <h1 className="form-title">Diamond Leave System</h1>
 

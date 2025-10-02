@@ -25,14 +25,14 @@ const Sidebar = () => {
             icon: '📝',
             levels: [2, 3]
         },
-        // Only Employee & Manager see their leaves
+        // Only Employee & Manager
         {
             path: '/my-leaves',
             label: 'My Leaves',
             icon: '📋',
             levels: [2, 3]
         },
-        // Only Manager sees these
+        // Only Manager
         {
             path: '/pending-leaves',
             label: 'Pending Leaves',
@@ -45,7 +45,7 @@ const Sidebar = () => {
             icon: '👥',
             levels: [2]
         },
-        // Only HR sees these
+        // Only HR
         {
             path: '/hr-dashboard',
             label: 'HR Dashboard',
