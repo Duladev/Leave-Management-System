@@ -20,14 +20,14 @@ const Sidebar = () => {
         },
         // Only Employee & Manager can apply leave
         {
-            path: '/apply-leave',
+            path: './routes/employee',
             label: 'Apply Leave',
             icon: '📝',
             levels: [2, 3]
         },
         // Only Employee & Manager
         {
-            path: '/my-leaves',
+            path: 'F:/Leave-Management-System-1/backend/routes/employee',
             label: 'My Leaves',
             icon: '📋',
             levels: [2, 3]
@@ -80,7 +80,7 @@ const Sidebar = () => {
         logout();
         navigate('/login');
     };
-
+// components layout
     return (
         <div className="sidebar">
             <div className="sidebar-header">
