@@ -30,7 +30,7 @@ const Login = () => {
 
     return (
         <main id="login-section" className="login-page">
-            
+
             <div className="login-card">
                 <svg className="login-card-bg" viewBox="0 0 678 600" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -44,8 +44,10 @@ const Login = () => {
                     <rect width="678" height="600" fill="url(#grad1)" rx="20" />
                 </svg>
                 <form className="login-form" onSubmit={handleSubmit}>
-                    <h1 className="form-title">Diamond Leave System</h1>
-
+                    <div className="login-logo">
+                        <img src="../assets/1.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <h1 className="form-title" pad2>DIAMOND CUTTERS LTD</h1>
                     {error && (
                         <div className="error-alert">
                             {error}

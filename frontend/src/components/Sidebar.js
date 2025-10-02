@@ -11,28 +11,24 @@ const Sidebar = () => {
     const isActive = (path) => location.pathname === path;
 
     const menuItems = [
-        // Employee & Manager & HR can see Dashboard
         {
             path: '/dashboard',
             label: 'Dashboard',
             icon: '📊',
             levels: [1, 2, 3]
         },
-        // Only Employee & Manager can apply leave
         {
-            path: './routes/employee',
+            path: '/apply-leave',
             label: 'Apply Leave',
             icon: '📝',
             levels: [2, 3]
         },
-        // Only Employee & Manager
         {
-            path: 'F:/Leave-Management-System-1/backend/routes/employee',
+            path: '/my-leaves',
             label: 'My Leaves',
             icon: '📋',
             levels: [2, 3]
         },
-        // Only Manager
         {
             path: '/pending-leaves',
             label: 'Pending Leaves',
@@ -45,7 +41,6 @@ const Sidebar = () => {
             icon: '👥',
             levels: [2]
         },
-        // Only HR
         {
             path: '/hr-dashboard',
             label: 'HR Dashboard',
@@ -80,14 +75,20 @@ const Sidebar = () => {
         logout();
         navigate('/login');
     };
-// components layout
+
     return (
         <div className="sidebar">
             <div className="sidebar-header">
-                <h2>Diamond Leave</h2>
-                <p className="system-subtitle">Management System</p>
+                <div className="logo-container">
+                    <img
+                        src="../assets/NIRU.png"
+                        alt=""
+                        className="sidebar-logo"
+                    />
+                </div>
+                <h2> <p className="system-subtitle">Diamond Cutters LTD</p> </h2>
+                <p className="system-subtitle">Leave Management System</p>
             </div>
-
             <div className="sidebar-user">
                 <div className="user-avatar">
                     {user?.full_name?.charAt(0).toUpperCase()}
@@ -115,7 +116,7 @@ const Sidebar = () => {
             </nav>
 
             <button className="logout-btn" onClick={handleLogout}>
-                <span className="nav-icon">🚪</span>
+                {/* <span className="nav-icon" src="../assets/1.jpg"></span> */}
                 <span>Logout</span>
             </button>
         </div>
