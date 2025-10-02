@@ -8,7 +8,7 @@ const PrivateRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
-
+//dashboard components and routing system
 function App() {
   return (
     <AuthProvider>
