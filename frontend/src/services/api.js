@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3300/api';
+const API_URL = 'http://localhost:3000/api';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -9,72 +9,63 @@ const api = axios.create({
     }
 });
 
-// Request interceptor to add token to headers
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        console.log('API Request:', config.method.toUpperCase(), config.url);
         return config;
     },
     (error) => {
+        console.error('API Request Error:', error);
         return Promise.reject(error);
     }
 );
 
-// Response interceptor for error handling
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log('API Response:', response.status, response.config.url);
+        return response;
+    },
     (error) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-        }
+        console.error('API Response Error:', error.response?.status, error.response?.data);
         return Promise.reject(error);
     }
 );
 
-// Authentication API
 export const authAPI = {
-    login: (email, password) => api.post('/auth/login', { email, password }),
-    logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    }
+    login: (email, password) => api.post('/auth/login', { email, password })
 };
 
-// Employee API
 export const employeeAPI = {
     applyLeave: (leaveData) => api.post('/employee/apply-leave', leaveData),
     getMyLeaves: () => api.get('/employee/my-leaves'),
-    getMyBalances: () => api.get('/employee/my-balances'),
-    getLeaveTypes: () => api.get('/employee/leave-types')
+    getMyBalances: () => api.get('/employee/my-balances')
 };
 
-// Manager API
 export const managerAPI = {
     getPendingLeaves: () => api.get('/manager/pending-leaves'),
     getTeamLeaves: () => api.get('/manager/team-leaves'),
     approveLeave: (applicationId) => api.post(`/manager/approve/${applicationId}`),
-    rejectLeave: (applicationId, reason) => api.post(`/manager/reject/${applicationId}`, { rejection_reason: reason }),
-    getTeamMembers: () => api.get('/manager/team-members')
+    rejectLeave: (applicationId, reason) => api.post(`/manager/reject/${applicationId}`, { rejection_reason: reason })
 };
 
-// HR API
 export const hrAPI = {
     getAllUsers: () => api.get('/hr/users'),
     createUser: (userData) => api.post('/hr/users', userData),
-    updateUser: (userId, userData) => api.put(`/hr/users/${userId}`, userData),
-    deleteUser: (userId) => api.delete(`/hr/users/${userId}`),
     assignManager: (userId, managerId) => api.put('/hr/assign-manager', { user_id: userId, manager_id: managerId }),
     getAllLeaves: () => api.get('/hr/all-leaves'),
-    getRejectedLeaves: () => api.get('/hr/rejected-leaves'),
-    getLeaveTypes: () => api.get('/hr/leave-types'),
-    createLeaveType: (leaveTypeData) => api.post('/hr/leave-types', leaveTypeData),
-    updateLeaveType: (leaveTypeId, leaveTypeData) => api.put(`/hr/leave-types/${leaveTypeId}`, leaveTypeData),
-    deleteLeaveType: (leaveTypeId) => api.delete(`/hr/leave-types/${leaveTypeId}`)
+
+    // Department APIs
+    getDepartments: () => api.get('/hr/departments'),
+    createDepartment: (departmentData) => api.post('/hr/departments', departmentData),
+    deleteDepartment: (departmentId) => api.delete(`/hr/departments/${departmentId}`),
+    getEmployeeBalances: (userId) => api.get(`/hr/employee-balances/${userId}`),
+    initializeLeaveBalances: (userId) => api.post(`/hr/initialize-balances/${userId}`),
+    updateLeaveBalance: (balanceId, balanceData) => api.put(`/hr/update-balance/${balanceId}`, balanceData)
 };
+
 
 export default api;

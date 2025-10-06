@@ -4,6 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ApplyLeave from './pages/ApplyLeave';
+import MyLeaves from './pages/MyLeaves';
+import PendingLeaves from './pages/PendingLeaves';
+import TeamLeaves from './pages/TeamLeaves';
+import ManageUsers from './pages/ManageUsers';
+import ManageDepartments from './pages/ManageDepatments';
+import ManageLeaveBalances from './pages/ManageLeaveBalances';
+import RejectedLeaves from './pages/RejectedLeaves';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -27,6 +34,55 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <ApplyLeave />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/my-leaves"
+        element={
+          <PrivateRoute>
+            <MyLeaves />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/pending-leaves"
+        element={
+          <PrivateRoute>
+            <PendingLeaves />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/team-leaves"
+        element={
+          <PrivateRoute>
+            <TeamLeaves />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/manage-users"
+        element={
+          <PrivateRoute>
+            <ManageUsers />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/manage-departments"
+        element={
+          <PrivateRoute>
+            <ManageDepartments />
+          </PrivateRoute>
+        }
+      />,
+
+      <Route
+        path="/manage-leave-balances"
+        element={
+          <PrivateRoute>
+            <ManageLeaveBalances />
           </PrivateRoute>
         }
       />

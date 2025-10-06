@@ -54,6 +54,12 @@ const Sidebar = () => {
             levels: [1]
         },
         {
+            path: '/manage-departments',  // NEW
+            label: 'Manage Departments',
+            icon: '🏢',
+            levels: [1]
+        },
+        {
             path: '/all-leaves',
             label: 'All Leaves',
             icon: '📄',
@@ -64,6 +70,12 @@ const Sidebar = () => {
             label: 'Rejected Leaves',
             icon: '❌',
             levels: [1, 2]
+        },
+        {
+            path: '/manage-leave-balances',
+            label: 'Manage Leave Balances',
+            icon: '⚖️',
+            levels: [1]
         }
     ];
 
