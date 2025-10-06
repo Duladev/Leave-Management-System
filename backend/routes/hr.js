@@ -1,15 +1,48 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, checkLevel } = require('../middleware/auth');
 const User = require('../models/User');
 const LeaveApplication = require('../models/LeaveApplication');
 const LeaveBalance = require('../models/LeaveBalance');
+const Department = require('../models/Department');
 
-// All routes require Level 1 (HR) authentication
-router.use(authMiddleware);
-router.use(checkLevel(1));
+// Department routes
+router.get('/departments', async (req, res) => {
+    try {
+        const departments = await Department.getAll();
+        res.json({ departments });
+    } catch (error) {
+        console.error('Get departments error:', error);
+        res.status(500).json({ message: 'Failed to get departments', error: error.message });
+    }
+});
 
-// Get all users
+router.post('/departments', async (req, res) => {
+    try {
+        const { department_name, department_code, description } = req.body;
+
+        if (!department_name || !department_code) {
+            return res.status(400).json({ message: 'Department name and code are required' });
+        }
+
+        const department = await Department.create({ department_name, department_code, description });
+        res.status(201).json({ message: 'Department created successfully', department });
+    } catch (error) {
+        console.error('Create department error:', error);
+        res.status(500).json({ message: 'Failed to create department', error: error.message });
+    }
+});
+
+router.delete('/departments/:departmentId', async (req, res) => {
+    try {
+        const { departmentId } = req.params;
+        await Department.delete(parseInt(departmentId));
+        res.json({ message: 'Department deleted successfully' });
+    } catch (error) {
+        console.error('Delete department error:', error);
+        res.status(500).json({ message: 'Failed to delete department', error: error.message });
+    }
+});
+
 router.get('/users', async (req, res) => {
     try {
         const users = await User.getAll();
@@ -20,35 +53,44 @@ router.get('/users', async (req, res) => {
     }
 });
 
-// Create new user
 router.post('/users', async (req, res) => {
     try {
-        const { email, password, full_name, user_level, manager_id } = req.body;
+        const { employee_id, email, password, full_name, user_level, manager_id, department_id } = req.body;
 
-        // Validate
         if (!email || !password || !full_name || !user_level) {
-            return res.status(400).json({ message: 'All fields are required' });
+            return res.status(400).json({ message: 'All required fields must be provided' });
         }
 
-        // Check if user exists
+        if (parseInt(user_level) === 2 && !department_id) {
+            return res.status(400).json({ message: 'Department is required for managers' });
+        }
+
         const existingUser = await User.findByEmail(email);
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Create user
-        const user = await User.create({ email, password, full_name, user_level, manager_id });
-        
-        // Initialize leave balances
+        const user = await User.create({
+            employee_id,
+            email,
+            password,
+            full_name,
+            user_level: parseInt(user_level),
+            manager_id: manager_id ? parseInt(manager_id) : null,
+            department_id: department_id ? parseInt(department_id) : null
+        });
+
         await LeaveBalance.initialize(user.user_id);
 
         res.status(201).json({
             message: 'User created successfully',
             user: {
                 user_id: user.user_id,
+                employee_id: user.employee_id,
                 email: user.email,
                 full_name: user.full_name,
-                user_level: user.user_level
+                user_level: user.user_level,
+                department_id: user.department_id
             }
         });
     } catch (error) {
@@ -56,8 +98,49 @@ router.post('/users', async (req, res) => {
         res.status(500).json({ message: 'Failed to create user', error: error.message });
     }
 });
+// Get employee leave balances
+router.get('/employee-balances/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const balances = await LeaveBalance.getByUserId(parseInt(userId));
+        res.json({ balances });
+    } catch (error) {
+        console.error('Get employee balances error:', error);
+        res.status(500).json({ message: 'Failed to get balances', error: error.message });
+    }
+});
 
-// Assign manager to employee
+// Initialize leave balances for an employee
+router.post('/initialize-balances/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        await LeaveBalance.initialize(parseInt(userId));
+        res.json({ message: 'Leave balances initialized successfully' });
+    } catch (error) {
+        console.error('Initialize balances error:', error);
+        res.status(500).json({ message: 'Failed to initialize balances', error: error.message });
+    }
+});
+
+// Update leave balance
+router.put('/update-balance/:balanceId', async (req, res) => {
+    try {
+        const { balanceId } = req.params;
+        const { total_days, used_days, available_days } = req.body;
+
+        await LeaveBalance.updateBalanceManually(parseInt(balanceId), {
+            total_days,
+            used_days,
+            available_days
+        });
+
+        res.json({ message: 'Leave balance updated successfully' });
+    } catch (error) {
+        console.error('Update balance error:', error);
+        res.status(500).json({ message: 'Failed to update balance', error: error.message });
+    }
+});
+
 router.put('/assign-manager', async (req, res) => {
     try {
         const { user_id, manager_id } = req.body;
@@ -67,7 +150,6 @@ router.put('/assign-manager', async (req, res) => {
         }
 
         await User.updateManager(user_id, manager_id);
-
         res.json({ message: 'Manager assigned successfully' });
     } catch (error) {
         console.error('Assign manager error:', error);
@@ -75,7 +157,6 @@ router.put('/assign-manager', async (req, res) => {
     }
 });
 
-// Get all leave applications
 router.get('/all-leaves', async (req, res) => {
     try {
         const leaves = await LeaveApplication.getAll();

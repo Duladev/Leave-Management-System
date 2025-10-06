@@ -21,13 +21,13 @@ app.get('/test-db', async (req, res) => {
         const { getPool } = require('./config/database');
         const pool = await getPool();
         const result = await pool.request().query('SELECT COUNT(*) as count FROM users');
-        res.json({ 
+        res.json({
             message: 'Database connected successfully!',
-            users_count: result.recordset[0].count 
+            users_count: result.recordset[0].count
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: 'Database connection failed', 
+        res.status(500).json({
+            message: 'Database connection failed',
             error: error.message
         });
     }

@@ -19,16 +19,16 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // TEMPORARY: Skip password verification for testing
+        // TEMPORARY: Skip password verification
         // const isValidPassword = await User.verifyPassword(password, user.password_hash);
         // if (!isValidPassword) {
-        //     console.log('Invalid password for:', email);
         //     return res.status(401).json({ message: 'Invalid email or password' });
         // }
 
         const token = jwt.sign(
             {
                 user_id: user.user_id,
+                employee_id: user.employee_id,
                 email: user.email,
                 user_level: user.user_level
             },
@@ -43,6 +43,7 @@ router.post('/login', async (req, res) => {
             token,
             user: {
                 user_id: user.user_id,
+                employee_id: user.employee_id,
                 email: user.email,
                 full_name: user.full_name,
                 user_level: user.user_level

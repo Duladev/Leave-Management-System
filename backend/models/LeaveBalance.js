@@ -4,7 +4,7 @@ class LeaveBalance {
     // Get user's leave balances
     static async getByUserId(userId) {
         const pool = await getPool();
-        
+
         const result = await pool.request()
             .input('user_id', sql.Int, userId)
             .input('year', sql.Int, new Date().getFullYear())
@@ -17,7 +17,7 @@ class LeaveBalance {
                 JOIN leave_types lt ON lb.leave_type_id = lt.leave_type_id
                 WHERE lb.user_id = @user_id AND lb.year = @year
             `);
-        
+
         return result.recordset;
     }
 
@@ -25,7 +25,7 @@ class LeaveBalance {
     static async initialize(userId) {
         const pool = await getPool();
         const year = new Date().getFullYear();
-        
+
         await pool.request()
             .input('user_id', sql.Int, userId)
             .input('year', sql.Int, year)
@@ -40,7 +40,7 @@ class LeaveBalance {
     static async updateBalance(userId, leaveTypeId, days) {
         const pool = await getPool();
         const year = new Date().getFullYear();
-        
+
         await pool.request()
             .input('user_id', sql.Int, userId)
             .input('leave_type_id', sql.Int, leaveTypeId)
@@ -54,6 +54,23 @@ class LeaveBalance {
                   AND leave_type_id = @leave_type_id 
                   AND year = @year
             `);
+    }
+    // Add this method to the LeaveBalance class
+    static async updateBalanceManually(balanceId, balanceData) {
+        const pool = await getPool();
+
+        await pool.request()
+            .input('balance_id', sql.Int, balanceId)
+            .input('total_days', sql.Decimal(5, 1), balanceData.total_days)
+            .input('used_days', sql.Decimal(5, 1), balanceData.used_days)
+            .input('available_days', sql.Decimal(5, 1), balanceData.available_days)
+            .query(`
+            UPDATE leave_balances 
+            SET total_days = @total_days,
+                used_days = @used_days,
+                available_days = @available_days
+            WHERE balance_id = @balance_id
+        `);
     }
 }
 

@@ -8,7 +8,7 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ message: 'Authentication required' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || '123');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         req.user = decoded;
         next();
     } catch (error) {
@@ -17,9 +17,6 @@ const authMiddleware = async (req, res, next) => {
 };
 
 // Check user level access
-// Level 1 (HR) - Full access
-// Level 2 (Manager) - Can approve leaves + apply own leaves
-// Level 3 (Employee) - Can only apply leaves
 const checkLevel = (...allowedLevels) => {
     return (req, res, next) => {
         if (!req.user) {
