@@ -102,3 +102,9 @@ department
     initializeLeaveBalances: (userId) => api.post(`/hr/initialize-balances/${userId}`),
     updateLeaveBalance: (balanceId, balanceData) => api.put(`/hr/update-balance/${balanceId}`, balanceData)
 };
+
+Notification Mode required
+--email function user when apply a leave request  --  to the manager
+--email function manager approved a leave request  --  to the employee
+
+
