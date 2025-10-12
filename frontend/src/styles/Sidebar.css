@@ -20,6 +20,29 @@
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
 }
 
+.logo-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 10px;
+    box-shadow:
+        0 0 20px rgba(138, 180, 248, 0.6),
+        0 0 40px rgba(79, 209, 197, 0.4);
+    border: 2px solid rgba(138, 180, 248, 0.5);
+}
+
+.sidebar-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
 .sidebar-header h2 {
     margin: 0;
     font-size: 24px;
@@ -160,7 +183,7 @@
 .logout-btn {
     margin: 20px;
     padding: 15px 25px;
-    background: linear-gradient(135deg, #024476 0%, #0e0233 100%);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
     border: none;
     border-radius: 12px;
     color: white;
@@ -172,12 +195,17 @@
     gap: 10px;
     justify-content: center;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .logout-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(240, 147, 251, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+    background: linear-gradient(135deg, #ee5a24 0%, #ff6b6b 100%);
+}
+
+.logout-icon {
+    font-size: 18px;
 }
 
 /* Scrollbar styling */
@@ -196,4 +224,92 @@
 
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 250px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .logo-container {
+        width: 60px;
+        height: 60px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 20px;
+    }
+
+    .nav-item {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Animation for sidebar items */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.nav-item {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.nav-item:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.nav-item:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.nav-item:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.nav-item:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.nav-item:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.nav-item:nth-child(6) {
+    animation-delay: 0.6s;
+}
+
+.nav-item:nth-child(7) {
+    animation-delay: 0.7s;
+}
+
+.nav-item:nth-child(8) {
+    animation-delay: 0.8s;
+}
+
+.nav-item:nth-child(9) {
+    animation-delay: 0.9s;
+}
+
+.nav-item:nth-child(10) {
+    animation-delay: 1.0s;
+}
+
+.nav-item:nth-child(11) {
+    animation-delay: 1.1s;
 }

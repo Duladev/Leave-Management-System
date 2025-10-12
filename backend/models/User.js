@@ -28,6 +28,7 @@ class User {
                 VALUES (@employee_id, @email, @password_hash, @full_name, @user_level, @manager_id, @department_id)
             `);
 
+        console.log('User created:', result.recordset[0]);
         return result.recordset[0];
     }
 
@@ -44,7 +45,21 @@ class User {
         const pool = await getPool();
         const result = await pool.request()
             .input('user_id', sql.Int, userId)
-            .query('SELECT user_id, employee_id, email, full_name, user_level, manager_id, department_id FROM users WHERE user_id = @user_id');
+            .query(`
+                SELECT 
+                    u.user_id, 
+                    u.employee_id, 
+                    u.email, 
+                    u.full_name, 
+                    u.user_level, 
+                    u.manager_id,
+                    u.department_id,
+                    d.department_name,
+                    d.department_code
+                FROM users u
+                LEFT JOIN departments d ON u.department_id = d.department_id
+                WHERE u.user_id = @user_id
+            `);
 
         return result.recordset[0];
     }
@@ -63,10 +78,13 @@ class User {
                     u.department_id,
                     u.created_at,
                     d.department_name,
-                    d.department_code
+                    d.department_code,
+                    m.full_name as manager_name,
+                    m.employee_id as manager_employee_id
                 FROM users u
                 LEFT JOIN departments d ON u.department_id = d.department_id
-                ORDER BY u.user_id
+                LEFT JOIN users m ON u.manager_id = m.user_id
+                ORDER BY u.user_level, u.full_name
             `);
 
         return result.recordset;
@@ -78,6 +96,8 @@ class User {
             .input('user_id', sql.Int, userId)
             .input('manager_id', sql.Int, managerId)
             .query('UPDATE users SET manager_id = @manager_id WHERE user_id = @user_id');
+
+        console.log('Manager updated for user:', userId, 'to manager:', managerId);
     }
 
     static async verifyPassword(plainPassword, hashedPassword) {

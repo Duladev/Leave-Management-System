@@ -32,8 +32,17 @@ const ManageLeaveBalances = () => {
                 user.email.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setFilteredUsers(filtered);
+
+            // FIXED: Reset selection if current employee not in filtered results
+            if (selectedEmployee) {
+                const isSelectedInFiltered = filtered.some(u => u.user_id === parseInt(selectedEmployee));
+                if (!isSelectedInFiltered) {
+                    setSelectedEmployee('');
+                    setBalances([]);
+                }
+            }
         }
-    }, [searchTerm, users]);
+    }, [searchTerm, users, selectedEmployee]);
 
     const fetchUsers = async () => {
         try {
@@ -43,6 +52,7 @@ const ManageLeaveBalances = () => {
             setFilteredUsers(employeeList);
         } catch (error) {
             console.error('Error fetching users:', error);
+            alert('Failed to fetch users. Please refresh the page.');
         }
     };
 
@@ -50,10 +60,11 @@ const ManageLeaveBalances = () => {
         setLoading(true);
         try {
             const response = await hrAPI.getEmployeeBalances(userId);
-            setBalances(response.data.balances);
+            setBalances(response.data.balances || []);
         } catch (error) {
             console.error('Error fetching balances:', error);
-            alert('Failed to fetch leave balances');
+            alert('Failed to fetch leave balances: ' + (error.response?.data?.message || 'Unknown error'));
+            setBalances([]);
         } finally {
             setLoading(false);
         }
@@ -79,12 +90,32 @@ const ManageLeaveBalances = () => {
     };
 
     const handleEditSubmit = async (balanceId) => {
+        // Validation
+        const totalDays = parseFloat(editFormData.total_days);
+        const usedDays = parseFloat(editFormData.used_days);
+        const availableDays = parseFloat(editFormData.available_days);
+
+        if (isNaN(totalDays) || isNaN(usedDays) || isNaN(availableDays)) {
+            alert('Please enter valid numbers for all fields');
+            return;
+        }
+
+        if (totalDays < 0 || usedDays < 0 || availableDays < 0) {
+            alert('Values cannot be negative');
+            return;
+        }
+
+        // FIXED: Validate that total = used + available
+        if (Math.abs((usedDays + availableDays) - totalDays) > 0.01) {
+            alert('Total days must equal used days + available days');
+            return;
+        }
+
         try {
             await hrAPI.updateLeaveBalance(balanceId, {
-                ...editFormData,
-                total_days: parseFloat(editFormData.total_days),
-                used_days: parseFloat(editFormData.used_days),
-                available_days: parseFloat(editFormData.available_days)
+                total_days: totalDays,
+                used_days: usedDays,
+                available_days: availableDays
             });
             alert('Leave balance updated successfully');
             setShowEditModal(null);
@@ -113,7 +144,8 @@ const ManageLeaveBalances = () => {
         }
     };
 
-    const selectedUser = users.find(u => u.user_id === parseInt(selectedEmployee));
+    // FIXED: Ensure selectedUser is from filteredUsers, not all users
+    const selectedUser = filteredUsers.find(u => u.user_id === parseInt(selectedEmployee));
 
     return (
         <div className="dashboard-wrapper">
@@ -362,6 +394,18 @@ const ManageLeaveBalances = () => {
                                         color: 'white'
                                     }}
                                 />
+                            </div>
+
+                            {/* ADDED: Validation hint */}
+                            <div style={{
+                                padding: '10px',
+                                background: 'rgba(102, 126, 234, 0.2)',
+                                borderRadius: '8px',
+                                marginBottom: '15px',
+                                fontSize: '13px',
+                                color: 'rgba(255,255,255,0.8)'
+                            }}>
+                                Note: Total Days should equal Used Days + Available Days
                             </div>
 
                             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>

@@ -86,6 +86,14 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/rejected-leaves"
+        element={
+          <PrivateRoute>
+            <RejectedLeaves />
+          </PrivateRoute>
+        }
+      />
       <Route path="/" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

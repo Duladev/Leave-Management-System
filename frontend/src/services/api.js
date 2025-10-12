@@ -31,6 +31,17 @@ api.interceptors.response.use(
     },
     (error) => {
         console.error('API Response Error:', error.response?.status, error.response?.data);
+
+        // Handle authentication errors
+        if (error.response?.status === 401) {
+            const errorCode = error.response?.data?.code;
+            if (errorCode === 'INVALID_TOKEN' || errorCode === 'NO_TOKEN') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+        }
+
         return Promise.reject(error);
     }
 );
@@ -42,7 +53,8 @@ export const authAPI = {
 export const employeeAPI = {
     applyLeave: (leaveData) => api.post('/employee/apply-leave', leaveData),
     getMyLeaves: () => api.get('/employee/my-leaves'),
-    getMyBalances: () => api.get('/employee/my-balances')
+    getMyBalances: () => api.get('/employee/my-balances'),
+    getShortLeaveCount: () => api.get('/employee/short-leave-count')
 };
 
 export const managerAPI = {
@@ -57,8 +69,6 @@ export const hrAPI = {
     createUser: (userData) => api.post('/hr/users', userData),
     assignManager: (userId, managerId) => api.put('/hr/assign-manager', { user_id: userId, manager_id: managerId }),
     getAllLeaves: () => api.get('/hr/all-leaves'),
-
-    // Department APIs
     getDepartments: () => api.get('/hr/departments'),
     createDepartment: (departmentData) => api.post('/hr/departments', departmentData),
     deleteDepartment: (departmentId) => api.delete(`/hr/departments/${departmentId}`),
@@ -66,6 +76,5 @@ export const hrAPI = {
     initializeLeaveBalances: (userId) => api.post(`/hr/initialize-balances/${userId}`),
     updateLeaveBalance: (balanceId, balanceData) => api.put(`/hr/update-balance/${balanceId}`, balanceData)
 };
-
 
 export default api;

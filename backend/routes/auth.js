@@ -19,8 +19,8 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // TEMPORARY: Skip password verification
-        // const isValidPassword = await User.verifyPassword(password, user.password_hash);
+        //TEMPORARY: Skip password verification
+        //const isValidPassword = await User.verifyPassword(password, user.password_hash);
         // if (!isValidPassword) {
         //     return res.status(401).json({ message: 'Invalid email or password' });
         // }
@@ -32,8 +32,8 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 user_level: user.user_level
             },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
+            process.env.JWT_SECRET || '1234',
+            { expiresIn: '2h' }
         );
 
         console.log('Login successful:', email);

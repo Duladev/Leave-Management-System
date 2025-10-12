@@ -1,54 +1,48 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-dotenv.config();
+const { authMiddleware, checkLevel } = require('./middleware/auth');
 
 const app = express();
 
-// Middleware - MUST be before routes
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Test route
-app.get('/', (req, res) => {
-    res.json({ message: 'Leave Management System Backend is Running!' });
+// Public routes (no authentication required)
+app.use('/api/auth', require('./routes/auth'));
+
+// Protected routes (authentication required)
+app.use('/api/employee', authMiddleware, require('./routes/employee'));
+app.use('/api/manager', authMiddleware, checkLevel(1, 2), require('./routes/manager'));
+app.use('/api/hr', authMiddleware, checkLevel(1), require('./routes/hr'));
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Test database connection
-app.get('/test-db', async (req, res) => {
-    try {
-        const { getPool } = require('./config/database');
-        const pool = await getPool();
-        const result = await pool.request().query('SELECT COUNT(*) as count FROM users');
-        res.json({
-            message: 'Database connected successfully!',
-            users_count: result.recordset[0].count
-        });
-    } catch (error) {
-        res.status(500).json({
-            message: 'Database connection failed',
-            error: error.message
-        });
-    }
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ message: 'Route not found' });
 });
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const employeeRoutes = require('./routes/employee');
-const managerRoutes = require('./routes/manager');
-const hrRoutes = require('./routes/hr');
-
-// Register routes
-app.use('/api/auth', authRoutes);
-app.use('/api/employee', employeeRoutes);
-app.use('/api/manager', managerRoutes);
-app.use('/api/hr', hrRoutes);
-
-
+// Error handler
+app.use((error, req, res, next) => {
+    console.error('Global error handler:', error);
+    res.status(500).json({
+        message: 'Internal server error',
+        error: error.message
+    });
+});
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Public routes: /api/auth/*`);
+    console.log(`Protected routes: /api/employee/*, /api/manager/*, /api/hr/*`);
 });
+
+module.exports = app;

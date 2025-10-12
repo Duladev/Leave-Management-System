@@ -166,5 +166,56 @@ router.get('/all-leaves', async (req, res) => {
         res.status(500).json({ message: 'Failed to get leaves', error: error.message });
     }
 });
+// Update leave balance
+router.put('/update-balance/:balanceId', async (req, res) => {
+    try {
+        const { balanceId } = req.params;
+        const { total_days, used_days, available_days } = req.body;
+
+        console.log('===== UPDATE BALANCE REQUEST =====');
+        console.log('Balance ID:', balanceId);
+        console.log('New values:', { total_days, used_days, available_days });
+
+        const { getPool, sql } = require('../config/database');
+        const pool = await getPool();
+
+        // Check current balance
+        const before = await pool.request()
+            .input('balance_id', sql.Int, parseInt(balanceId))
+            .query('SELECT * FROM leave_balances WHERE balance_id = @balance_id');
+
+        console.log('Balance before update:', before.recordset[0]);
+
+        // Update balance
+        await pool.request()
+            .input('balance_id', sql.Int, parseInt(balanceId))
+            .input('total_days', sql.Decimal(5, 1), parseFloat(total_days))
+            .input('used_days', sql.Decimal(5, 1), parseFloat(used_days))
+            .input('available_days', sql.Decimal(5, 1), parseFloat(available_days))
+            .query(`
+                UPDATE leave_balances 
+                SET total_days = @total_days,
+                    used_days = @used_days,
+                    available_days = @available_days
+                WHERE balance_id = @balance_id
+            `);
+
+        // Check after update
+        const after = await pool.request()
+            .input('balance_id', sql.Int, parseInt(balanceId))
+            .query('SELECT * FROM leave_balances WHERE balance_id = @balance_id');
+
+        console.log('Balance after update:', after.recordset[0]);
+
+        res.json({
+            message: 'Leave balance updated successfully',
+            before: before.recordset[0],
+            after: after.recordset[0]
+        });
+    } catch (error) {
+        console.error('Update balance error:', error);
+        res.status(500).json({ message: 'Failed to update balance', error: error.message });
+    }
+});
 
 module.exports = router;
