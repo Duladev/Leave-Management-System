@@ -10,6 +10,7 @@ const ManageUsers = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterLevel, setFilterLevel] = useState('All'); // All, Managers, Employees
     const [formData, setFormData] = useState({
         employee_id: '',
         email: '',
@@ -93,11 +94,22 @@ const ManageUsers = () => {
 
     const managers = users.filter(u => u.user_level === 2);
 
-    const filteredUsers = users.filter(user =>
-        user.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users
+        .filter(user => {
+            // Filter by level
+            if (filterLevel === 'Managers' && user.user_level !== 2) return false;
+            if (filterLevel === 'Employees' && user.user_level !== 3) return false;
+
+            // Filter by search term
+            if (searchTerm) {
+                return (
+                    user.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            return true;
+        });
 
     if (loading) {
         return <div className="loading">Loading...</div>;
@@ -117,15 +129,16 @@ const ManageUsers = () => {
                     </button>
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
+                {/* Search and Filter */}
+                <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         placeholder="Search by Employee ID, Name or Email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{
-                            width: '100%',
-                            maxWidth: '500px',
+                            flex: '1',
+                            minWidth: '300px',
                             padding: '12px',
                             borderRadius: '8px',
                             border: '1px solid rgba(255,255,255,0.3)',
@@ -134,6 +147,47 @@ const ManageUsers = () => {
                             fontSize: '16px'
                         }}
                     />
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {['All', 'Managers', 'Employees'].map(filter => (
+                            <button
+                                key={filter}
+                                onClick={() => setFilterLevel(filter)}
+                                style={{
+                                    padding: '12px 24px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: filterLevel === filter
+                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                        : 'rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                {filter}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Statistics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                    <div className="card stat-card">
+                        <div className="stat-value">{users.filter(u => u.user_level === 1).length}</div>
+                        <div className="stat-label">HR Admins</div>
+                    </div>
+                    <div className="card stat-card">
+                        <div className="stat-value">{users.filter(u => u.user_level === 2).length}</div>
+                        <div className="stat-label">Managers</div>
+                    </div>
+                    <div className="card stat-card">
+                        <div className="stat-value">{users.filter(u => u.user_level === 3).length}</div>
+                        <div className="stat-label">Employees</div>
+                    </div>
+                    <div className="card stat-card">
+                        <div className="stat-value">{filteredUsers.length}</div>
+                        <div className="stat-label">Showing</div>
+                    </div>
                 </div>
 
                 <div className="table-container">
@@ -151,66 +205,79 @@ const ManageUsers = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredUsers.map((user) => {
-                                const manager = users.find(u => u.user_id === user.manager_id);
-                                const levelInfo = getLevelBadge(user.user_level);
-                                return (
-                                    <tr key={user.user_id}>
-                                        <td style={{ fontWeight: '600', color: '#4facfe' }}>{user.employee_id}</td>
-                                        <td style={{ fontWeight: '600' }}>{user.full_name}</td>
-                                        <td>{user.email}</td>
-                                        <td>
-                                            <span className={`user-role ${levelInfo.class}`}>
-                                                {levelInfo.name}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {user.department_name ? (
-                                                <div>
-                                                    <div>{user.department_name}</div>
-                                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                                                        {user.department_code}
+                            {filteredUsers.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>
+                                        No users found
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredUsers.map((user) => {
+                                    const levelInfo = getLevelBadge(user.user_level);
+                                    return (
+                                        <tr key={user.user_id}>
+                                            <td style={{ fontWeight: '600', color: '#4facfe' }}>{user.employee_id}</td>
+                                            <td style={{ fontWeight: '600' }}>{user.full_name}</td>
+                                            <td>{user.email}</td>
+                                            <td>
+                                                <span className={`user-role ${levelInfo.class}`}>
+                                                    {levelInfo.name}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {user.department_name ? (
+                                                    <div>
+                                                        <div>{user.department_name}</div>
+                                                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                                                            {user.department_code}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : '-'}
-                                        </td>
-                                        <td>
-                                            {manager ? (
-                                                <div>
-                                                    <div>{manager.full_name}</div>
-                                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                                                        {manager.employee_id}
+                                                ) : '-'}
+                                            </td>
+                                            <td>
+                                                {user.manager_name ? (
+                                                    <div>
+                                                        <div>{user.manager_name}</div>
+                                                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                                                            {user.manager_employee_id}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : '-'}
-                                        </td>
-                                        <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                                        <td>
-                                            {user.user_level === 3 && (
-                                                <button
-                                                    onClick={() => setShowAssignModal(user.user_id)}
-                                                    style={{
-                                                        padding: '6px 12px',
-                                                        borderRadius: '6px',
-                                                        border: 'none',
-                                                        background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                                                        color: 'white',
-                                                        cursor: 'pointer',
-                                                        fontSize: '13px',
-                                                        fontWeight: '600'
-                                                    }}
-                                                >
-                                                    Assign Manager
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                                ) : user.user_level === 3 ? (
+                                                    <span style={{ color: '#fa709a' }}>Not Assigned</span>
+                                                ) : '-'}
+                                            </td>
+                                            <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                                            <td>
+                                                {user.user_level === 3 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowAssignModal(user.user_id);
+                                                            setAssignManagerId(user.manager_id || '');
+                                                        }}
+                                                        style={{
+                                                            padding: '6px 12px',
+                                                            borderRadius: '6px',
+                                                            border: 'none',
+                                                            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                                            color: 'white',
+                                                            cursor: 'pointer',
+                                                            fontSize: '13px',
+                                                            fontWeight: '600'
+                                                        }}
+                                                    >
+                                                        {user.manager_id ? 'Change Manager' : 'Assign Manager'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
 
+                {/* Create User Modal */}
                 {showCreateModal && (
                     <div style={{
                         position: 'fixed',
@@ -238,7 +305,7 @@ const ManageUsers = () => {
                             <form onSubmit={handleCreateUser}>
                                 <div style={{ marginBottom: '15px' }}>
                                     <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>
-                                        Employee ID (Optional - Auto-generated if empty)
+                                        Employee ID 
                                     </label>
                                     <input
                                         type="text"
@@ -356,28 +423,56 @@ const ManageUsers = () => {
                                 )}
 
                                 {formData.user_level === '3' && (
-                                    <div style={{ marginBottom: '15px' }}>
-                                        <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Manager (Optional)</label>
-                                        <select
-                                            value={formData.manager_id}
-                                            onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '10px',
-                                                borderRadius: '8px',
-                                                border: '1px solid rgba(255,255,255,0.3)',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                color: 'white'
-                                            }}
-                                        >
-                                            <option value="" style={{ background: '#1a1a2e' }}>No Manager</option>
-                                            {managers.map(m => (
-                                                <option key={m.user_id} value={m.user_id} style={{ background: '#1a1a2e' }}>
-                                                    {m.employee_id} - {m.full_name} ({m.department_name || 'No Dept'})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    <>
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>
+                                                Department (Optional)
+                                            </label>
+                                            <select
+                                                value={formData.department_id}
+                                                onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(255,255,255,0.3)',
+                                                    background: 'rgba(255,255,255,0.1)',
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                <option value="" style={{ background: '#1a1a2e' }}>No Department</option>
+                                                {departments.map(dept => (
+                                                    <option key={dept.department_id} value={dept.department_id} style={{ background: '#1a1a2e' }}>
+                                                        {dept.department_code} - {dept.department_name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>
+                                                Manager <span style={{ color: '#fa709a' }}>*</span>
+                                            </label>
+                                            <select
+                                                value={formData.manager_id}
+                                                onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(255,255,255,0.3)',
+                                                    background: 'rgba(255,255,255,0.1)',
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                <option value="" style={{ background: '#1a1a2e' }}>Select Manager</option>
+                                                {managers.map(m => (
+                                                    <option key={m.user_id} value={m.user_id} style={{ background: '#1a1a2e' }}>
+                                                        {m.employee_id} - {m.full_name} ({m.department_name || 'No Dept'})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </>
                                 )}
 
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -403,7 +498,6 @@ const ManageUsers = () => {
                         </div>
                     </div>
                 )}
-
                 {showAssignModal && (
                     <div style={{
                         position: 'fixed',

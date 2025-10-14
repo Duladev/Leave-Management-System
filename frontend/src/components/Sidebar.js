@@ -3,6 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Sidebar.css';
 
+// Import the logo directly
+import logo from '../assets/NIRU.png';
+
 const Sidebar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -41,12 +44,12 @@ const Sidebar = () => {
             icon: '👥',
             levels: [2]
         },
-        {
-            path: '/hr-dashboard',
-            label: 'HR Dashboard',
-            icon: '👔',
-            levels: [1]
-        },
+        // {
+        //     path: '/hr-dashboard',
+        //     label: 'HR Dashboard',
+        //     icon: '👔',
+        //     levels: [1]
+        // },
         {
             path: '/manage-users',
             label: 'Manage Users',
@@ -54,7 +57,7 @@ const Sidebar = () => {
             levels: [1]
         },
         {
-            path: '/manage-departments',  // NEW
+            path: '/manage-departments',
             label: 'Manage Departments',
             icon: '🏢',
             levels: [1]
@@ -93,14 +96,15 @@ const Sidebar = () => {
             <div className="sidebar-header">
                 <div className="logo-container">
                     <img
-                        src="../assets/NIRU.png"
-                        alt=""
+                        src={logo}
+                        alt="Diamond Cutters Ltd Logo"
                         className="sidebar-logo"
                     />
                 </div>
-                <h2> <p className="system-subtitle">Diamond Cutters LTD</p> </h2>
+                <h2><p className="system-subtitle">Diamond Cutters LTD</p></h2>
                 <p className="system-subtitle">Leave Management System</p>
             </div>
+
             <div className="sidebar-user">
                 <div className="user-avatar">
                     {user?.full_name?.charAt(0).toUpperCase()}
@@ -128,7 +132,7 @@ const Sidebar = () => {
             </nav>
 
             <button className="logout-btn" onClick={handleLogout}>
-                {/* <span className="nav-icon" src="../assets/1.jpg"></span> */}
+                <span className="logout-icon">🚪</span>
                 <span>Logout</span>
             </button>
         </div>
