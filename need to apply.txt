@@ -1,0 +1,339 @@
+-- Check if leave_types table has data
+SELECT * FROM leave_types;
+
+-- If empty, insert default leave types
+INSERT INTO leave_types (leave_type_name, description) 
+VALUES 
+    ('Annual Leave', 'Yearly vacation leave'),
+    ('Sick Leave', 'Medical leave for illness'),
+    ('Casual Leave', 'Short term personal leave');
+
+-- Check existing leave balances
+SELECT 
+    u.user_id,
+    u.full_name,
+    lb.balance_id,
+    lb.leave_type_id,
+    lt.leave_type_name,
+    lb.total_days,
+    lb.used_days,
+    lb.available_days,
+    lb.year
+FROM users u
+LEFT JOIN leave_balances lb ON u.user_id = lb.user_id AND lb.year = YEAR(GETDATE())
+LEFT JOIN leave_types lt ON lb.leave_type_id = lt.leave_type_id
+ORDER BY u.user_id, lb.leave_type_id;
+
+-- Find users without leave balances for current year
+SELECT u.user_id, u.full_name, u.email
+FROM users u
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM leave_balances lb 
+    WHERE lb.user_id = u.user_id 
+    AND lb.year = YEAR(GETDATE())
+);
+
+-- Initialize leave balances for users who don't have them
+-- Replace @user_id with actual user IDs from the query above
+DECLARE @user_id INT;
+DECLARE @year INT = YEAR(GETDATE());
+
+-- Example for user_id = 1 (repeat for each user)
+SET @user_id = 1; -- Change this to your actual user ID
+
+-- Check if balances exist
+IF NOT EXISTS (SELECT 1 FROM leave_balances WHERE user_id = @user_id AND year = @year)
+BEGIN
+    -- Insert balances for each leave type
+    INSERT INTO leave_balances (user_id, leave_type_id, total_days, used_days, available_days, year)
+    SELECT 
+        @user_id,
+        leave_type_id,
+        20.0,  -- Default 20 days for each type
+        0.0,
+        20.0,
+        @year
+    FROM leave_types;
+    
+    PRINT 'Leave balances initialized for user ' + CAST(@user_id AS VARCHAR);
+END
+ELSE
+BEGIN
+    PRINT 'Leave balances already exist for user ' + CAST(@user_id AS VARCHAR);
+END;
+
+-- Verify the data types are correct
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    NUMERIC_PRECISION,
+    NUMERIC_SCALE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'leave_balances'
+AND COLUMN_NAME IN ('total_days', 'used_days', 'available_days');
+
+-- Check for any negative balances or data inconsistencies
+SELECT 
+    lb.balance_id,
+    u.full_name,
+    lt.leave_type_name,
+    lb.total_days,
+    lb.used_days,
+    lb.available_days,
+    CASE 
+        WHEN lb.available_days < 0 THEN 'Negative balance'
+        WHEN lb.total_days - lb.used_days != lb.available_days THEN 'Inconsistent calculation'
+        ELSE 'OK'
+    END as status
+FROM leave_balances lb
+JOIN users u ON lb.user_id = u.user_id
+JOIN leave_types lt ON lb.leave_type_id = lt.leave_type_id
+WHERE lb.year = YEAR(GETDATE());
+
+-- Fix inconsistent balances
+UPDATE leave_balances
+SET available_days = total_days - used_days
+WHERE year = YEAR(GETDATE())
+AND available_days != (total_days - used_days);
+
+-- Verify all users have complete set of leave balances
+SELECT 
+    u.user_id,
+    u.full_name,
+    COUNT(lb.balance_id) as balance_count,
+    (SELECT COUNT(*) FROM leave_types) as expected_count
+FROM users u
+LEFT JOIN leave_balances lb ON u.user_id = lb.user_id AND lb.year = YEAR(GETDATE())
+GROUP BY u.user_id, u.full_name
+HAVING COUNT(lb.balance_id) < (SELECT COUNT(*) FROM leave_types);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const express = require('express');
+const router = express.Router();
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const LeaveBalance = require('../models/LeaveBalance');
+const Leave = require('../models/Leave');
+
+// Get my leave balances
+router.get('/balances', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        console.log('Fetching balances for user:', req.user.userId);
+        
+        let balances = await LeaveBalance.getByUserId(req.user.userId);
+        
+        // If no balances found, initialize them
+        if (!balances || balances.length === 0) {
+            console.log('No balances found, initializing...');
+            await LeaveBalance.initialize(req.user.userId);
+            balances = await LeaveBalance.getByUserId(req.user.userId);
+        }
+        
+        console.log('Balances fetched:', balances);
+        
+        res.json({
+            success: true,
+            balances: balances
+        });
+    } catch (error) {
+        console.error('Error fetching balances:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching leave balances',
+            error: error.message
+        });
+    }
+});
+
+// Apply for leave
+router.post('/leave/apply', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const leaveData = {
+            ...req.body,
+            user_id: userId,
+            status: 'Pending'
+        };
+
+        console.log('Leave application data:', leaveData);
+
+        // Validate required fields
+        if (!leaveData.leave_type_id || !leaveData.start_date || !leaveData.reason) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        // Check if user has sufficient balance BEFORE creating the leave
+        const balanceCheck = await LeaveBalance.checkSufficientBalance(
+            userId, 
+            leaveData.leave_type_id, 
+            leaveData.total_days
+        );
+
+        if (!balanceCheck.sufficient) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient leave balance. You have ${balanceCheck.available} day(s) available but requested ${leaveData.total_days} day(s).`
+            });
+        }
+
+        // Create the leave request
+        const leave = await Leave.create(leaveData);
+        
+        console.log('Leave created successfully:', leave);
+
+        res.status(201).json({
+            success: true,
+            message: 'Leave application submitted successfully',
+            leave: leave
+        });
+    } catch (error) {
+        console.error('Error applying for leave:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error submitting leave application',
+            error: error.message
+        });
+    }
+});
+
+// Get my leave requests
+router.get('/leave/my-requests', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        const leaves = await Leave.getByUserId(req.user.userId);
+        
+        res.json({
+            success: true,
+            leaves: leaves
+        });
+    } catch (error) {
+        console.error('Error fetching leave requests:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching leave requests',
+            error: error.message
+        });
+    }
+});
+
+// Get single leave request
+router.get('/leave/:id', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        const leave = await Leave.getById(req.params.id);
+        
+        if (!leave) {
+            return res.status(404).json({
+                success: false,
+                message: 'Leave request not found'
+            });
+        }
+
+        // Verify user owns this leave or is manager/hr
+        if (leave.user_id !== req.user.userId && 
+            !['manager', 'hr'].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+        
+        res.json({
+            success: true,
+            leave: leave
+        });
+    } catch (error) {
+        console.error('Error fetching leave request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching leave request',
+            error: error.message
+        });
+    }
+});
+
+// Cancel leave request (only if pending)
+router.put('/leave/:id/cancel', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        const leave = await Leave.getById(req.params.id);
+        
+        if (!leave) {
+            return res.status(404).json({
+                success: false,
+                message: 'Leave request not found'
+            });
+        }
+
+        // Verify user owns this leave
+        if (leave.user_id !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        // Can only cancel pending leaves
+        if (leave.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot cancel leave with status: ${leave.status}`
+            });
+        }
+
+        await Leave.updateStatus(req.params.id, 'Cancelled', null);
+        
+        res.json({
+            success: true,
+            message: 'Leave request cancelled successfully'
+        });
+    } catch (error) {
+        console.error('Error cancelling leave:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error cancelling leave request',
+            error: error.message
+        });
+    }
+});
+
+// Get leave statistics
+router.get('/leave/stats', authenticateToken, requireRole(['employee', 'manager', 'hr']), async (req, res) => {
+    try {
+        const stats = await Leave.getStatsByUserId(req.user.userId);
+        const balances = await LeaveBalance.getByUserId(req.user.userId);
+        
+        res.json({
+            success: true,
+            stats: stats,
+            balances: balances
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching statistics',
+            error: error.message
+        });
+    }
+});
+
+module.exports = router;
