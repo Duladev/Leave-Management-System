@@ -96,7 +96,7 @@ const ApplyLeave = () => {
 
         if (startDate.getMonth() !== endDate.getMonth() ||
             startDate.getFullYear() !== endDate.getFullYear()) {
-            setValidationError('❌ Leave cannot Apply across two different months. Please apply for each month separately.');
+            setValidationError('❌ Leave cannot span across two different months. Please apply for each month separately.');
             return false;
         }
 

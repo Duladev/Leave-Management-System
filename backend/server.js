@@ -37,7 +37,11 @@ app.use((error, req, res, next) => {
     });
 });
 
+<<<<<<< HEAD
 const PORT = process.env.PORT || 3300;
+=======
+const PORT = process.env.PORT || 3000;
+>>>>>>> 84c639e2ce4578b0c87e67ef7e54a03925d8f354
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
